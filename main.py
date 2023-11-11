@@ -1,71 +1,128 @@
 import random
 import pygame
-from pygame.sprite import *
+from pygame.sprite import Sprite, Group
 from sys import exit
 
-dimensionX = 800
-dimensionY = 800
+# Constants
+DIMENSION_X = 800
+DIMENSION_Y = 800
+VIRUS_SCALE = 10
 
-virusScale = 10
+# Initialize Pygame
+pygame.init()
 
+# Load Background
 background = pygame.image.load('assets/background.png')
-background = pygame.transform.scale(background, (dimensionX, dimensionY))
-
-points = 0
+background = pygame.transform.scale(background, (DIMENSION_X, DIMENSION_Y))
 
 
+# Player class
+class Player(Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load('assets/player.png'),
+                                            (DIMENSION_X // VIRUS_SCALE / 2, DIMENSION_Y // VIRUS_SCALE / 2))
+        self.rect = self.image.get_rect()
+        self.rect.centerx = DIMENSION_X // 2
+        self.rect.centery = DIMENSION_Y // 2
+
+
+# Virus class
 class Virus(Sprite):
     def __init__(self):
-        Sprite.__init__(self)
-        self.x = random.randint(0, dimensionX)
-        self.y = -75
-        self.image = pygame.transform.scale(pygame.image.load('assets/virus{}.png'.format(random.randint(0, 3))),
-                                            (dimensionX / virusScale, dimensionY / virusScale))
+        super().__init__()
+        self.image = pygame.transform.scale(
+            pygame.image.load('assets/virus{}.png'.format(random.randint(0, 3))),
+            (DIMENSION_X // VIRUS_SCALE, DIMENSION_Y // VIRUS_SCALE)
+        )
         self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, DIMENSION_X)
+        self.rect.y = -self.rect.height
         self.speed = 5
         self.angle = random.randint(-1, 1)
 
     def update(self):
-        self.y += self.speed
-        self.x += self.angle
-        if dimensionY + 75 < self.y:
-            self.y = -75
-            self.x = random.randint(0, dimensionX)
-            if self.speed < 13:
-                self.speed += 1
+        self.rect.y += self.speed
+        self.rect.x += self.angle
+        if self.rect.y > DIMENSION_Y:
+            self.reset()
 
-        self.rect.y = self.y
-        self.rect.x = self.x
+    def reset(self):
+        self.rect.y = -self.rect.height
+        self.rect.x = random.randint(0, DIMENSION_X)
+        if self.speed < 13:
+            self.speed += 1
 
 
-pygame.init()
-sprites = Group()
-virus = Virus()
+# Game class
+class DodgerGame:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((DIMENSION_X, DIMENSION_Y))
+        pygame.display.set_caption('Dodger')
+        self.clock = pygame.time.Clock()
+        self.sprites = Group()
+        self.player = Player()
+        self.sprites.add(self.player)
+        self.viruses = Group()
+        self.score = 0
+        self.font = pygame.font.SysFont('Arial', 30)
+        self.virus_spawn_threshold = 100
 
-sprites.add(virus)
+    def run(self):
+        pygame.time.set_timer(pygame.USEREVENT, 1000)
 
-screen = pygame.display.set_mode((dimensionX, dimensionY))
-pygame.display.set_caption('Dodger')
-clock = pygame.time.Clock()
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.USEREVENT:
+                    self.score += 1
+                    self.spawn_virus()
+                    if self.score % self.virus_spawn_threshold == 0:
+                        self.spawn_virus()
 
-counter, text = 0, '0'.rjust(3)
-pygame.time.set_timer(pygame.USEREVENT, 1000)
-font = pygame.font.SysFont('Arial', 30)
+            self.screen.blit(background, (0, 0))
+            self.handle_input()
+            self.sprites.update()
+            self.check_collisions()
+            self.sprites.draw(self.screen)
+            self.display_score()
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-        if event.type == pygame.USEREVENT:
-            counter += 1
-            text = str(counter).rjust(3)
-            newVirus = Virus()
-            sprites.add(newVirus)
+            pygame.display.update()
+            self.clock.tick(60)
 
-    screen.blit(background, (0, 0))
-    sprites.update()
-    sprites.draw(screen)
-    screen.blit(font.render(text, True, (0, 0, 0)), (0, 0))
-    pygame.display.update()
-    clock.tick(60)
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and self.player.rect.left > 0:
+            self.player.rect.x -= 5
+        if keys[pygame.K_RIGHT] and self.player.rect.right < DIMENSION_X:
+            self.player.rect.x += 5
+        if keys[pygame.K_UP] and self.player.rect.top > 0:
+            self.player.rect.y -= 5
+        if keys[pygame.K_DOWN] and self.player.rect.bottom < DIMENSION_Y:
+            self.player.rect.y += 5
+
+    def spawn_virus(self):
+        virus = Virus()
+        self.sprites.add(virus)
+        self.viruses.add(virus)
+
+    def check_collisions(self):
+        collisions = pygame.sprite.spritecollide(self.player, self.viruses, True)
+        if collisions:
+            self.reset_game()
+
+    def reset_game(self):
+        self.score = 0
+        self.viruses.empty()
+        self.spawn_virus()
+
+    def display_score(self):
+        score_text = str(self.score).rjust(3)
+        self.screen.blit(self.font.render(score_text, True, (0, 0, 0)), (0, 0))
+
+
+if __name__ == "__main__":
+    game = DodgerGame()
+    game.run()
