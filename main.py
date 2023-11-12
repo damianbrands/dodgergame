@@ -38,7 +38,7 @@ class Virus(Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = random.randint(0, DIMENSION_X)
         self.rect.y = -self.rect.height
-        self.speed = 5
+        self.speed = 1
         self.angle = random.randint(-1, 1)
 
     def update(self):
@@ -50,7 +50,7 @@ class Virus(Sprite):
     def reset(self):
         self.rect.y = -self.rect.height
         self.rect.x = random.randint(0, DIMENSION_X)
-        if self.speed < 13:
+        if self.speed < 10:
             self.speed += 1
 
 
@@ -69,15 +69,18 @@ class DodgerGame:
         self.virus_spawn_threshold = 100
 
     def run(self):
-        pygame.time.set_timer(pygame.USEREVENT, 1000)
+        pygame.time.set_timer(pygame.USEREVENT + 1, 1000)
+        pygame.time.set_timer(pygame.USEREVENT + 2, 10000)
+        self.spawn_virus()
 
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                if event.type == pygame.USEREVENT:
+                if event.type == pygame.USEREVENT + 1:
                     self.score += 1
+                if event.type == pygame.USEREVENT + 2:
                     self.spawn_virus()
                     if self.score % self.virus_spawn_threshold == 0:
                         self.spawn_virus()
@@ -114,7 +117,6 @@ class DodgerGame:
             self.reset_game()
 
     def reset_game(self):
-        self.score = 0
         self.viruses.empty()
         self.spawn_virus()
 
