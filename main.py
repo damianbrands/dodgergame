@@ -117,8 +117,13 @@ class DodgerGame:
             self.reset_game()
 
     def reset_game(self):
+        self.sprites.empty()
         self.viruses.empty()
+        self.sprites.add(self.player)
         self.spawn_virus()
+        self.score = 0
+        self.player.rect.centerx = DIMENSION_X // 2
+        self.player.rect.centery = DIMENSION_Y // 2
 
     def display_score(self):
         score_text = str(self.score).rjust(3)
