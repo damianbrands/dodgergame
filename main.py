@@ -67,6 +67,7 @@ class DodgerGame:
         self.score = 0
         self.font = pygame.font.SysFont('Arial', 30)
         self.virus_spawn_threshold = 100
+        self.playing = True
 
     def run(self):
         pygame.time.set_timer(pygame.USEREVENT + 1, 1000)
@@ -78,12 +79,13 @@ class DodgerGame:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                if event.type == pygame.USEREVENT + 1:
-                    self.score += 1
-                if event.type == pygame.USEREVENT + 2:
-                    self.spawn_virus()
-                    if self.score % self.virus_spawn_threshold == 0:
+                if self.playing:
+                    if event.type == pygame.USEREVENT + 1:
+                        self.score += 1
+                    if event.type == pygame.USEREVENT + 2:
                         self.spawn_virus()
+                        if self.score % self.virus_spawn_threshold == 0:
+                            self.spawn_virus()
 
             self.screen.blit(background, (0, 0))
             self.handle_input()
@@ -105,6 +107,8 @@ class DodgerGame:
             self.player.rect.y -= 5
         if keys[pygame.K_DOWN] and self.player.rect.bottom < DIMENSION_Y:
             self.player.rect.y += 5
+        if keys[pygame.K_SPACE] and not self.playing:
+            self.reset_game()
 
     def spawn_virus(self):
         virus = Virus()
@@ -114,7 +118,7 @@ class DodgerGame:
     def check_collisions(self):
         collisions = pygame.sprite.spritecollide(self.player, self.viruses, True)
         if collisions:
-            self.reset_game()
+            self.playing = False
 
     def reset_game(self):
         self.sprites.empty()
@@ -124,10 +128,13 @@ class DodgerGame:
         self.score = 0
         self.player.rect.centerx = DIMENSION_X // 2
         self.player.rect.centery = DIMENSION_Y // 2
+        self.playing = True
 
     def display_score(self):
-        score_text = str(self.score).rjust(3)
-        self.screen.blit(self.font.render(score_text, True, (0, 0, 0)), (0, 0))
+        if self.playing:
+            self.screen.blit(self.font.render(str(self.score), True, (0, 0, 0)), (10, 0))
+        else:
+            self.screen.blit(self.font.render("Final score: " + str(self.score) + ", Press spacebar to play again!", True, (0, 0, 0)), (10, 0))
 
 
 if __name__ == "__main__":
